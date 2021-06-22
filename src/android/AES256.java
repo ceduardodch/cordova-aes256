@@ -17,6 +17,7 @@ import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
+import javax.crypto.spec.GCMParameterSpec;
 
 import shaded.org.apache.commons.codec.binary.Hex;
 
@@ -27,16 +28,10 @@ public class AES256 extends CordovaPlugin {
 
     private static final String ENCRYPT = "encrypt";
     private static final String DECRYPT = "decrypt";
-    private static final String GENERATE_SECURE_KEY = "generateSecureKey";
-    private static final String GENERATE_SECURE_IV = "generateSecureIV";
 
-    private static final String CIPHER_TRANSFORMATION = "AES/CBC/PKCS5PADDING";
+    private static final String CIPHER_TRANSFORMATION = "AES/GCM/NoPadding";
     private static final int PBKDF2_ITERATION_COUNT = 1001;
-    private static final int PBKDF2_KEY_LENGTH = 256;
-    private static final int SECURE_IV_LENGTH = 64;
-    private static final int SECURE_KEY_LENGTH = 128;
-    private static final String PBKDF2_ALGORITHM = "PBKDF2WithHmacSHA1";
-    private static final String PBKDF2_SALT = "hY0wTq6xwc6ni01G";
+
     private static final Random RANDOM = new SecureRandom();
 
     @Override
@@ -47,33 +42,25 @@ public class AES256 extends CordovaPlugin {
                 public void run() {
                     try {
                         if (ENCRYPT.equalsIgnoreCase(action)) {
-                            String secureKey = args.getString(0);
-                            String iv = args.getString(1);
-                            String value = args.getString(2);
                             callbackContext.success(encrypt(secureKey, value, iv));
                         } else if (DECRYPT.equalsIgnoreCase(action)) {
                             String secureKey = args.getString(0);
                             String iv = args.getString(1);
                             String value = args.getString(2);
                             callbackContext.success(decrypt(secureKey, value, iv));
-                        } else if (GENERATE_SECURE_KEY.equalsIgnoreCase(action)) {
-                            String password = args.getString(0);
-                            callbackContext.success(generateSecureKey(password));
-                        } else if (GENERATE_SECURE_IV.equalsIgnoreCase(action)) {
-                            String password = args.getString(0);
-                            callbackContext.success(generateSecureIV(password));
+                        } 
                         } else {
                             callbackContext.error("Invalid method call");
                         }
                     } catch (Exception e) {
-                        System.out.println("Error occurred while performing " + action + " : " + e.getMessage());
-                        callbackContext.error("Error occurred while performing " + action);
+                        System.out.println("Error 1 occurred while performing " + action + " : " + e.getMessage());
+                        callbackContext.error("Error 1 occurred while performing " + action);
                     }
                 }
             });
         } catch (Exception e) {
-            System.out.println("Error occurred while performing " + action + " : " + e.getMessage());
-            callbackContext.error("Error occurred while performing " + action);
+            System.out.println("Error 2 occurred while performing " + action + " : " + e.getMessage());
+            callbackContext.error("Error 2 occurred while performing " + action);
         }
         return  true;
     }
@@ -90,12 +77,10 @@ public class AES256 extends CordovaPlugin {
      * @throws Exception
      */
     private String encrypt(String secureKey, String value, String iv) throws Exception {
-        byte[] pbkdf2SecuredKey = generatePBKDF2(secureKey.toCharArray(), PBKDF2_SALT.getBytes("UTF-8"),
-                PBKDF2_ITERATION_COUNT, PBKDF2_KEY_LENGTH);
 
-        IvParameterSpec ivParameterSpec = new IvParameterSpec(iv.getBytes("UTF-8"));
-        SecretKeySpec secretKeySpec = new SecretKeySpec(pbkdf2SecuredKey, "AES");
-
+        SecretKeySpec secretKeySpec = new SecretKeySpec(Base64.decodeBase64(secureKey), "AES");
+        GCMParameterSpec ivParameterSpec = new GCMParameterSpec(128, Base64.decodeBase64(iv.getBytes("UTF-8")));
+        
         Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
         cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, ivParameterSpec);
 
@@ -131,53 +116,6 @@ public class AES256 extends CordovaPlugin {
         return new String(original);
     }
 
-    /**
-     * @param password       The password
-     * @param salt           The salt
-     * @param iterationCount The iteration count
-     * @param keyLength      The length of the derived key.
-     * @return PBKDF2 secured key
-     * @throws Exception
-     * @see <a href="https://docs.oracle.com/javase/8/docs/api/javax/crypto/spec/PBEKeySpec.html">
-     * https://docs.oracle.com/javase/8/docs/api/javax/crypto/spec/PBEKeySpec.html</a>
-     */
-    private static byte[] generatePBKDF2(char[] password, byte[] salt, int iterationCount,
-                                         int keyLength) throws Exception {
-        SecretKeyFactory secretKeyFactory = SecretKeyFactory.getInstance(PBKDF2_ALGORITHM);
-        KeySpec keySpec = new PBEKeySpec(password, salt, iterationCount, keyLength);
-        SecretKey secretKey = secretKeyFactory.generateSecret(keySpec);
-        return secretKey.getEncoded();
-    }
-
-    /**
-     * <p>
-     * This method used to generate the secure key based on the PBKDF2 algorithm
-     * </p>
-     *
-     * @param password The password
-     * @return SecureKey
-     * @throws Exception
-     */
-    private static String generateSecureKey(String password) throws Exception {
-        byte[] secureKeyInBytes = generatePBKDF2(password.toCharArray(), generateRandomSalt(),
-                PBKDF2_ITERATION_COUNT, SECURE_KEY_LENGTH);
-        return Hex.encodeHexString(secureKeyInBytes);
-    }
-
-    /**
-     * <p>
-     * This method used to generate the secure IV based on the PBKDF2 algorithm
-     * </p>
-     *
-     * @param password The password
-     * @return SecureIV
-     * @throws Exception
-     */
-    private static String generateSecureIV(String password) throws Exception {
-        byte[] secureIVInBytes = generatePBKDF2(password.toCharArray(), generateRandomSalt(),
-                PBKDF2_ITERATION_COUNT, SECURE_IV_LENGTH);
-        return Hex.encodeHexString(secureIVInBytes);
-    }
 
     /**
      * <p>
