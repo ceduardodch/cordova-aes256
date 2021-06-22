@@ -46,12 +46,6 @@ public class AES256 extends CordovaPlugin {
                             String iv = args.getString(1);
                             String value = args.getString(2);
                             callbackContext.success(encrypt(secureKey, value, iv));
-                        } else if (DECRYPT.equalsIgnoreCase(action)) {
-                            String secureKey = args.getString(0);
-                            String iv = args.getString(1);
-                            String value = args.getString(2);
-                            callbackContext.success(decrypt(secureKey, value, iv));
-                        } 
                         } else {
                             callbackContext.error("Invalid method call");
                         }
@@ -81,8 +75,8 @@ public class AES256 extends CordovaPlugin {
      */
     private String encrypt(String secureKey, String value, String iv) throws Exception {
 
-        SecretKeySpec secretKeySpec = new SecretKeySpec(Base64.decodeBase64(secureKey), "AES");
-        GCMParameterSpec ivParameterSpec = new GCMParameterSpec(128, Base64.decodeBase64(iv.getBytes("UTF-8")));
+        SecretKeySpec secretKeySpec = new SecretKeySpec(Base64.decode(secureKey, Base64.DEFAULT), "AES");
+        GCMParameterSpec ivParameterSpec = new GCMParameterSpec(128, Base64.decode(iv.getBytes("UTF-8"), Base64.DEFAULT));
         
         Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
         cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, ivParameterSpec);
@@ -104,20 +98,6 @@ public class AES256 extends CordovaPlugin {
      * @return AES Decrypted string
      * @throws Exception
      */
-    private String decrypt(String secureKey, String value, String iv) throws Exception {
-        byte[] pbkdf2SecuredKey = generatePBKDF2(secureKey.toCharArray(), PBKDF2_SALT.getBytes("UTF-8"),
-                PBKDF2_ITERATION_COUNT, PBKDF2_KEY_LENGTH);
-
-        IvParameterSpec ivParameterSpec = new IvParameterSpec(iv.getBytes("UTF-8"));
-        SecretKeySpec secretKeySpec = new SecretKeySpec(pbkdf2SecuredKey, "AES");
-
-        Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
-        cipher.init(Cipher.DECRYPT_MODE, secretKeySpec, ivParameterSpec);
-
-        byte[] original = cipher.doFinal(Base64.decode(value, Base64.DEFAULT));
-
-        return new String(original);
-    }
 
 
     /**
