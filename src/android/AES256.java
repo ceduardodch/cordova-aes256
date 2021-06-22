@@ -26,90 +26,109 @@ import shaded.org.apache.commons.codec.binary.Hex;
  */
 public class AES256 extends CordovaPlugin {
 
-    private static final String ENCRYPT = "encrypt";
-    private static final String DECRYPT = "decrypt";
+  private static final String ENCRYPT = "encrypt";
+  private static final String DECRYPT = "decrypt";
 
-    private static final String CIPHER_TRANSFORMATION = "AES/GCM/NoPadding";
-    private static final int PBKDF2_ITERATION_COUNT = 1001;
+  private static final String CIPHER_TRANSFORMATION = "AES/GCM/NoPadding";
 
-    private static final Random RANDOM = new SecureRandom();
+  private static final Random RANDOM = new SecureRandom();
 
-    @Override
-    public boolean execute(final String action, final JSONArray args,  final CallbackContext callbackContext) throws JSONException {
-        try {
-            cordova.getThreadPool().execute(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        if (ENCRYPT.equalsIgnoreCase(action)) {
-                            String secureKey = args.getString(0);
-                            String iv = args.getString(1);
-                            String value = args.getString(2);
-                            callbackContext.success(encrypt(secureKey, value, iv));
-                        } else {
-                            callbackContext.error("Invalid method call");
-                        }
-                    } catch (Exception e) {
-                        System.out.println("Error 1 occurred while performing " + action + " : " + e.getMessage());
-                        callbackContext.error("Error 1 occurred while performing " + action);
-                    }
-                }
-            });
-        } catch (Exception e) {
-            System.out.println("Error 2 occurred while performing " + action + " : " + e.getMessage());
-            callbackContext.error("Error 2 occurred while performing " + action);
+  @Override
+  public boolean execute(final String action, final JSONArray args,  final CallbackContext callbackContext) throws JSONException {
+    try {
+      cordova.getThreadPool().execute(new Runnable() {
+        @Override
+        public void run() {
+          try {
+            if (ENCRYPT.equalsIgnoreCase(action)) {
+              String secureKey = args.getString(0);
+              String iv = args.getString(1);
+              String value = args.getString(2);
+              callbackContext.success(encrypt(secureKey, value, iv));
+            } else if (DECRYPT.equalsIgnoreCase(action)) {
+              String secureKey = args.getString(0);
+              String iv = args.getString(1);
+              String value = args.getString(2);
+              callbackContext.success(decrypt(secureKey, value, iv));
+            } else {
+              callbackContext.error("Invalid method call");
+            }
+          } catch (Exception e) {
+            System.out.println("Error 1 occurred while performing " + action + " : " + e.getMessage());
+            callbackContext.error("Error 1 occurred while performing " + action);
+          }
         }
-        return  true;
+      });
+    } catch (Exception e) {
+      System.out.println("Error 2 occurred while performing " + action + " : " + e.getMessage());
+      callbackContext.error("Error 2 occurred while performing " + action);
     }
+    return  true;
+  }
 
-    /**
-     * <p>
-     * To perform the AES256 encryption
-     * </p>
-     *
-     * @param secureKey A 32 bytes string, which will used as input key for AES256 encryption
-     * @param value     A string which will be encrypted
-     * @param iv        A 16 bytes string, which will used as initial vector for AES256 encryption
-     * @return AES Encrypted string
-     * @throws Exception
-     */
-    private String encrypt(String secureKey, String value, String iv) throws Exception {
+  /**
+   * <p>
+   * To perform the AES256 encryption
+   * </p>
+   *
+   * @param secureKey A 32 bytes string, which will used as input key for AES256 encryption
+   * @param value     A string which will be encrypted
+   * @param iv        A 16 bytes string, which will used as initial vector for AES256 encryption
+   * @return AES Encrypted string
+   * @throws Exception
+   */
+  private String encrypt(String secureKey, String value, String iv) throws Exception {
 
-        SecretKeySpec secretKeySpec = new SecretKeySpec(Base64.decode(secureKey, Base64.DEFAULT), "AES");
-        GCMParameterSpec ivParameterSpec = new GCMParameterSpec(128, Base64.decode(iv.getBytes("UTF-8"), Base64.DEFAULT));
-        
-        Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
-        cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, ivParameterSpec);
+    SecretKeySpec secretKeySpec = new SecretKeySpec(Base64.decode(secureKey, Base64.DEFAULT), "AES");
+    GCMParameterSpec ivParameterSpec = new GCMParameterSpec(128, Base64.decode(iv.getBytes("UTF-8"), Base64.DEFAULT));
 
-        byte[] encrypted = cipher.doFinal(value.getBytes());
+    Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
+    cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, ivParameterSpec);
 
-        return Base64.encodeToString(encrypted, Base64.DEFAULT);
+    byte[] encrypted = cipher.doFinal(value.getBytes());
 
-    }
+    return Base64.encodeToString(encrypted, Base64.DEFAULT);
 
-    /**
-     * <p>
-     * To perform the AES256 decryption
-     * </p>
-     *
-     * @param secureKey A 32 bytes string, which will used as input key for AES256 decryption
-     * @param value     A 16 bytes string, which will used as initial vector for AES256 decryption
-     * @param iv        An AES256 encrypted data which will be decrypted
-     * @return AES Decrypted string
-     * @throws Exception
-     */
+  }
 
+  /**
+   * <p>
+   * To perform the AES256 decryption
+   * </p>
+   *
+   * @param secureKey A 32 bytes string, which will used as input key for AES256 decryption
+   * @param value     A 16 bytes string, which will used as initial vector for AES256 decryption
+   * @param iv        An AES256 encrypted data which will be decrypted
+   * @return AES Decrypted string
+   * @throws Exception
+   */
+  private String decrypt(String secureKey, String value, String iv) throws Exception {
 
-    /**
-     * <p>
-     * This method used to generate the random salt
-     * </p>
-     *
-     * @return
-     */
-    private static byte[] generateRandomSalt() {
-        byte[] salt = new byte[16];
-        RANDOM.nextBytes(salt);
-        return salt;
-    }
+    SecretKeySpec secretKeySpec = new SecretKeySpec(Base64.decode(secureKey, Base64.DEFAULT), "AES");
+    GCMParameterSpec ivParameterSpec = new GCMParameterSpec(128, Base64.decode(iv.getBytes("UTF-8"), Base64.DEFAULT));
+
+    Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
+    cipher.init(Cipher.DECRYPT_MODE, secretKeySpec, ivParameterSpec);
+
+    byte[] original = cipher.doFinal(Base64.decode(value, Base64.DEFAULT));
+
+    return new String(original);
+  }
+
+  /**
+   *byte[] encrypted = cipher.doFinal(value.getBytes());
+   *
+   *     return Base64.encodeToString(encrypted, Base64.DEFAULT);
+   * <p>
+   * This method used to generate the random salt
+   * </p>
+   *
+   * @return
+   */
+  private static byte[] generateRandomSalt() {
+    byte[] salt = new byte[16];
+    RANDOM.nextBytes(salt);
+    return salt;
+  }
+
 }
