@@ -42,6 +42,9 @@ public class AES256 extends CordovaPlugin {
                 public void run() {
                     try {
                         if (ENCRYPT.equalsIgnoreCase(action)) {
+                            String secureKey = args.getString(0);
+                            String iv = args.getString(1);
+                            String value = args.getString(2);
                             callbackContext.success(encrypt(secureKey, value, iv));
                         } else if (DECRYPT.equalsIgnoreCase(action)) {
                             String secureKey = args.getString(0);
